@@ -18,10 +18,6 @@
 
 static spinlock_t susfs_spin_lock;
 
-#ifdef CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT
-static const char *magic_mount_workdir = "/debug_ramdisk/workdir";
-#endif
-
 extern bool susfs_is_current_ksu_domain(void);
 #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
 extern void ksu_try_umount(const char *mnt, bool check_mnt, int flags, uid_t uid);
