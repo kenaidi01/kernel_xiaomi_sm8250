@@ -65,9 +65,6 @@ extern bool susfs_is_log_enabled __read_mostly;
 
 #ifdef CONFIG_KSU_SUSFS_TRY_UMOUNT
 extern void susfs_run_try_umount_for_current_mnt_ns(void);
-#ifdef CONFIG_KSU_SUSFS_SUS_SU
-extern bool susfs_is_sus_su_ready;
-#endif // #ifdef CONFIG_KSU_SUSFS_SUS_SU
 extern bool susfs_is_mnt_devname_ksu(struct path *path);
 #endif // #ifdef CONFIG_KSU_SUSFS
 
