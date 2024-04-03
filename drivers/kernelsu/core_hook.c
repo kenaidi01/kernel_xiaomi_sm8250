@@ -61,9 +61,8 @@ bool susfs_is_allow_su(void)
 
 extern u32 susfs_zygote_sid;
 extern bool susfs_is_mnt_devname_ksu(struct path *path);
-#ifdef CONFIG_KSU_SUSFS_ENABLE_LOG
 extern bool susfs_is_log_enabled __read_mostly;
-#endif
+
 #ifdef CONFIG_KSU_SUSFS_TRY_UMOUNT
 extern void susfs_run_try_umount_for_current_mnt_ns(void);
 #endif // #ifdef CONFIG_KSU_SUSFS_TRY_UMOUNT
@@ -810,7 +809,11 @@ void ksu_umount_mnt(struct path *path, int flags)
 	}
 }
 
-void ksu_try_umount(const char *mnt, bool check_mnt, int flags)
+#ifdef CONFIG_KSU_SUSFS_TRY_UMOUNT
+void ksu_try_umount(const char *mnt, bool check_mnt, int flags, uid_t uid)
+#else
+static void ksu_try_umount(const char *mnt, bool check_mnt, int flags)
+#endif
 {
 	struct path path;
 	int err = kern_path(mnt, 0, &path);
@@ -828,7 +831,7 @@ void ksu_try_umount(const char *mnt, bool check_mnt, int flags)
 		return;
 	}
 
-#if defined(CONFIG_KSU_SUSFS_TRY_UMOUNT) && defined(CONFIG_KSU_SUSFS_ENABLE_LOG)
+#ifdef CONFIG_KSU_SUSFS_TRY_UMOUNT
 	if (susfs_is_log_enabled) {
 		pr_info("susfs: umounting '%s' for uid: %d\n", mnt, uid);
 	}
@@ -840,16 +843,16 @@ void ksu_try_umount(const char *mnt, bool check_mnt, int flags)
 #ifdef CONFIG_KSU_SUSFS_TRY_UMOUNT
 void susfs_try_umount_all(uid_t uid) {
 	susfs_try_umount(uid);
-	ksu_try_umount("/system", true, 0);
-	ksu_try_umount("/system_ext", true, 0);
-	ksu_try_umount("/vendor", true, 0);
-	ksu_try_umount("/product", true, 0);
-	ksu_try_umount("/odm", true, 0);
+	ksu_try_umount("/system", true, 0, uid);
+	ksu_try_umount("/system_ext", true, 0, uid);
+	ksu_try_umount("/vendor", true, 0, uid);
+	ksu_try_umount("/product", true, 0, uid);
+	ksu_try_umount("/odm", true, 0, uid);
 	// - For '/data/adb/modules' we pass 'false' here because it is a loop device that we can't determine whether 
 	//   its dev_name is KSU or not, and it is safe to just umount it if it is really a mountpoint
-	ksu_try_umount("/data/adb/modules", false, MNT_DETACH);
+	ksu_try_umount("/data/adb/modules", false, MNT_DETACH, uid);
 	/* For both Legacy KSU and Magic Mount KSU */
-	ksu_try_umount("/debug_ramdisk", true, MNT_DETACH);
+	ksu_try_umount("/debug_ramdisk", true, MNT_DETACH, uid);
 }
 #endif
 
