@@ -30,6 +30,8 @@
 
 #define TRY_UMOUNT_DEFAULT 0 /* used by susfs_try_umount() */
 #define TRY_UMOUNT_DETACH 1 /* used by susfs_try_umount() */
+#define TRY_UMOUNT_DEFAULT 0
+#define TRY_UMOUNT_DETACH 1
 
 #define SUS_SU_DISABLED 0
 #define SUS_SU_WITH_OVERLAY 1 /* deprecated */
@@ -60,3 +62,21 @@
 #define DATA_ADB_NO_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT "/data/adb/susfs_no_auto_add_try_umount_for_bind_mount"
 
 #endif // #ifndef KSU_SUSFS_DEF_H
+/*
+ * inode->i_state => storing flag 'INODE_STATE_'
+ * mount->mnt.android_kabi_reserved4 => storing original mnt_id
+ * task_struct->android_kabi_reserved8 => storing last valid fake mnt_id
+ * task_struct->android_kabi_reserved7 => storing flag 'TASK_STRUCT_KABI'
+ */
+
+#define INODE_STATE_SUS_PATH 16777216 // 1 << 24
+#define INODE_STATE_SUS_MOUNT 33554432 // 1 << 25
+#define INODE_STATE_SUS_KSTAT 67108864 // 1 << 26
+#define INODE_STATE_OPEN_REDIRECT 134217728 // 1 << 27
+
+#define TASK_STRUCT_NON_ROOT_USER_APP_PROC BIT(24)
+
+
+
+
+#endif
