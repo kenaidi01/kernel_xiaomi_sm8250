@@ -61,11 +61,54 @@ bool susfs_is_allow_su(void)
 
 extern u32 susfs_zygote_sid;
 extern bool susfs_is_mnt_devname_ksu(struct path *path);
-extern bool susfs_is_log_enabled __read_mostly;
 
 #ifdef CONFIG_KSU_SUSFS_TRY_UMOUNT
 extern void susfs_run_try_umount_for_current_mnt_ns(void);
-extern bool susfs_is_mnt_devname_ksu(struct path *path);
+#endif // #ifdef CONFIG_KSU_SUSFS_TRY_UMOUNT
+#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+static bool susfs_is_umount_for_zygote_system_process_enabled = false;
+#endif // #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+#ifdef CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT
+extern bool susfs_is_auto_add_sus_bind_mount_enabled;
+#endif // #ifdef CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT
+#ifdef CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT
+extern bool susfs_is_auto_add_sus_ksu_default_mount_enabled;
+#endif // #ifdef CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT
+#ifdef CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT
+extern bool susfs_is_auto_add_try_umount_for_bind_mount_enabled;
+#endif // #ifdef CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT
+
+static inline void susfs_on_post_fs_data(void) {
+	struct path path;
+#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+	if (!kern_path(DATA_ADB_UMOUNT_FOR_ZYGOTE_SYSTEM_PROCESS, 0, &path)) {
+		susfs_is_umount_for_zygote_system_process_enabled = true;
+		path_put(&path);
+	}
+	pr_info("susfs_is_umount_for_zygote_system_process_enabled: %d\n", susfs_is_umount_for_zygote_system_process_enabled);
+#endif // #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT
+#ifdef CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT
+	if (!kern_path(DATA_ADB_NO_AUTO_ADD_SUS_BIND_MOUNT, 0, &path)) {
+		susfs_is_auto_add_sus_bind_mount_enabled = false;
+		path_put(&path);
+	}
+	pr_info("susfs_is_auto_add_sus_bind_mount_enabled: %d\n", susfs_is_auto_add_sus_bind_mount_enabled);
+#endif // #ifdef CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT
+#ifdef CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT
+	if (!kern_path(DATA_ADB_NO_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT, 0, &path)) {
+		susfs_is_auto_add_sus_ksu_default_mount_enabled = false;
+		path_put(&path);
+	}
+	pr_info("susfs_is_auto_add_sus_ksu_default_mount_enabled: %d\n", susfs_is_auto_add_sus_ksu_default_mount_enabled);
+#endif // #ifdef CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT
+#ifdef CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT
+	if (!kern_path(DATA_ADB_NO_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT, 0, &path)) {
+		susfs_is_auto_add_try_umount_for_bind_mount_enabled = false;
+		path_put(&path);
+	}
+	pr_info("susfs_is_auto_add_try_umount_for_bind_mount_enabled: %d\n", susfs_is_auto_add_try_umount_for_bind_mount_enabled);
+#endif // #ifdef CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT
+}
 #endif // #ifdef CONFIG_KSU_SUSFS
 
 static bool ksu_module_mounted = false;
@@ -800,7 +843,10 @@ void susfs_try_umount_all(uid_t uid) {
 	ksu_try_umount("/vendor", true, 0);
 	ksu_try_umount("/product", true, 0);
 	ksu_try_umount("/odm", true, 0);
-	ksu_try_umount("/data/adb/modules", true, MNT_DETACH);
+	// - For '/data/adb/modules' we pass 'false' here because it is a loop device that we can't determine whether 
+	//   its dev_name is KSU or not, and it is safe to just umount it if it is really a mountpoint
+	ksu_try_umount("/data/adb/modules", false, MNT_DETACH);
+	/* For both Legacy KSU and Magic Mount KSU */
 	ksu_try_umount("/debug_ramdisk", true, MNT_DETACH);
 }
 #endif
@@ -830,10 +876,8 @@ int ksu_handle_setuid(struct cred *new, const struct cred *old)
 	if (likely(is_zygote_child)) {
 		// if spawned process is non user app process
 		if (unlikely(new_uid.val < 10000 && new_uid.val >= 1000)) {
-			struct path path;
-			// umount for the system process if path "/data/adb/susfs_umount_for_zygote_system_process" exists
-			if (!kern_path("/data/adb/susfs_umount_for_zygote_system_process", 0, &path)) {
-				path_put(&path);
+			// umount for the system process if path DATA_ADB_UMOUNT_FOR_ZYGOTE_SYSTEM_PROCESS exists
+			if (susfs_is_umount_for_zygote_system_process_enabled) {
 				goto out_ksu_try_umount;
 			}
 		}
