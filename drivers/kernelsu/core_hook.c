@@ -828,15 +828,12 @@ void ksu_try_umount(const char *mnt, bool check_mnt, int flags)
 		return;
 	}
 
-<<<<<<< HEAD
-=======
 #if defined(CONFIG_KSU_SUSFS_TRY_UMOUNT) && defined(CONFIG_KSU_SUSFS_ENABLE_LOG)
 	if (susfs_is_log_enabled) {
 		pr_info("susfs: umounting '%s' for uid: %d\n", mnt, uid);
 	}
 #endif
 
->>>>>>> d8c836e037ce (susfs: Fix compiler not being happy when ENABLE_LOG is disabled)
 	ksu_umount_mnt(&path, flags);
 }
 
