@@ -1646,6 +1646,9 @@ static struct dentry *__lookup_hash(const struct qstr *name,
 	struct dentry *dentry = lookup_dcache(name, base, flags);
 	struct dentry *old;
 	struct inode *dir = base->d_inode;
+	#ifdef CONFIG_KSU_SUSFS_SUS_PATH
+	int error;
+	#endif
 
 	if (dentry)
 		return dentry;
